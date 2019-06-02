@@ -26,8 +26,13 @@ client.on("message", function (context) {
     console.log("Got message?");
     append(context.message.body);
 });
+client.on("connection_open", function (context) {
+    console.log("Connected!");
+});
 var ws = client.websocket_connect(WebSocket);
 console.log("Connecting");
+client.options.username = "test";
+client.options.password = "test";
 var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqp"]), "reconnect":false});
 console.log("Opening receiver");
 connection.open_receiver("events");
