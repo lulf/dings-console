@@ -13,12 +13,15 @@
         deviceData.set(data.deviceId, []);
       }
 
-      var value = {timestamp: data.creationTime, data: data.payload};
-      if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId] < data.creationTime) {
+      var date = new Date(data.creationTime * 1000);
+      var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+      var value = {timestamp: data.creationTime, data: data.payload, date: formatted_date};
+      if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId].timestamp < data.creationTime) {
          lastValue[data.deviceId] = value;
       }
       deviceData.get(data.deviceId).push(value);
       deviceData = deviceData;
+      lastValue = lastValue;
   });
   client.on("connection_open", function (context) {
       console.log("Connected!");
@@ -51,7 +54,6 @@
 <!-- TODO: Support groups -->
 <h3>Potetlager</h3>
 
-{#each Array.from(deviceData.keys()) as device}
 <table>
 <tr>
 <th>Dings</th>
@@ -59,12 +61,13 @@
 <th>Siste måling</th>
 <th>Historikk</th>
 </tr>
+{#each Array.from(deviceData.keys()) as device}
 <tr>
 <td>{device}</td>
-<td>{lastValue[device].timestamp}</td>
+<td>{lastValue[device].date}</td>
 <td>{lastValue[device].data}</td>
 <td>Graph!</td>
 </tr>
+{/each}
 
 </table>
-{/each}
