@@ -52,7 +52,6 @@
 <h2>Dingser (totalt {deviceData.size})</h2>
 
 <!-- TODO: Support groups -->
-<h3>Potetlager</h3>
 
 <table>
 <tr>
