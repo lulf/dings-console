@@ -1,6 +1,5 @@
 <script>
   import client from 'rhea';
-	export let name;
   var server = "ws://127.0.0.1:8080";
   client.on("message", function (context) {
       console.log("Got message?");
@@ -23,4 +22,4 @@
 	}
 </style>
 
-<h1>Hello {name}!</h1>
+<h1>Teig Dashboard</h1>
