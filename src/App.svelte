@@ -1,8 +1,24 @@
 <script>
   import client from 'rhea';
+//  import Chart from 'chart.js';
+  // var server = "wss://127.0.0.1:8443";
   var server = "ws://127.0.0.1:8080";
+  var deviceData = new Map();
+  var lastValue = {};
+  var lastUpdate = {};
   client.on("message", function (context) {
-      console.log("Got message?");
+      //console.log("Got message: " + context.message.body);
+      var data = JSON.parse(context.message.body);
+      if (!(data.deviceId in deviceData)) {
+        deviceData.set(data.deviceId, []);
+      }
+
+      var value = {timestamp: data.creationTime, data: data.payload};
+      if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId] < data.creationTime) {
+         lastValue[data.deviceId] = value;
+      }
+      deviceData.get(data.deviceId).push(value);
+      deviceData = deviceData;
   });
   client.on("connection_open", function (context) {
       console.log("Connected!");
@@ -11,15 +27,44 @@
   console.log("Connecting");
   client.options.username = "test";
   client.options.password = "test";
+  // TODO: Enable TLS
+  // client.options.transport = "tls";
+  // client.options.rejectUnauthorized = false;
+  // var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqps"]), "reconnect":false});
   var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqp"]), "reconnect":false});
-  console.log("Opening receiver");
   connection.open_receiver("events");
 </script>
 
 <style>
-	h1 {
-		color: purple;
-	}
+  div {
+    border: 1px solid black;
+  }
+  table, th, td {
+    border: 1px solid black;
+  }
 </style>
 
 <h1>Teig Dashboard</h1>
+
+<h2>Dingser (totalt {deviceData.size})</h2>
+
+<!-- TODO: Support groups -->
+<h3>Potetlager</h3>
+
+{#each Array.from(deviceData.keys()) as device}
+<table>
+<tr>
+<th>Dings</th>
+<th>Sist oppdatert</th>
+<th>Siste måling</th>
+<th>Historikk</th>
+</tr>
+<tr>
+<td>{device}</td>
+<td>{lastValue[device].timestamp}</td>
+<td>{lastValue[device].data}</td>
+<td>Graph!</td>
+</tr>
+
+</table>
+{/each}
