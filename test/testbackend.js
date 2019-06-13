@@ -1,49 +1,39 @@
 var container = require('rhea');
 
-var args = require('../options.js').options({
-    'm': { alias: 'messages', default: 0, describe: 'number of messages to expect'},
-    'p': { alias: 'port', default: 8888, describe: 'port to listen on'}
-}).help('help').argv;
-
-var received = 0;
-var expected = args.messages;
 var listeners = {};
 
 var WebSocketServer = require('ws').Server;
-var server = new WebSocketServer({'port':args.port});
+var server = new WebSocketServer({'port':8080});
 server.on('connection', function (ws) {
     console.log('Accepted incoming websocket connection');
     container.websocket_accept(ws);
 });
-
+function authenticate(username, password) {
+    return true;
+}
+container.sasl_server_mechanisms.enable_plain(authenticate);
 function subscribe(name, sender) {
     listeners[name] = sender;
-}
-
-function unsubscribe(name) {
-    delete listeners[name];
 }
 
 container.on('sender_open', function (context) {
     subscribe(context.connection.remote.open.container_id, context.sender);
 });
-container.on('sender_close', function (context) {
-    unsubscribe(context.connection.remote.open.container_id);
-});
-container.on('connection_close', function (context) {
-    unsubscribe(context.connection.remote.open.container_id);
-});
-container.on('disconnected', function (context) {
-    unsubscribe(context.connection.remote.open.container_id);
-});
 
-var value = 0.0;
-setInterval(function (context) {
-    for (var name in listeners) {
-        if (value > (2 * Math.PI)) {
-            value = 0.0;
-        }
-        var message = {deviceId: "Dings 1", creationTime: Date.now(), payload: value};
-        listeners[name].send(message);
-    }
-}, 1000);
+var values = [];
+for (var i = 1; i <= 5; i++) {
+    // Start at different phase of the sinus curve
+    values[i] = Math.random() * 2 * Math.PI;
+
+    // Wait for a random amount of seconds before starting
+    setTimeout(function(id) {
+        // Send updated payload every 1 second
+        setInterval(function (context) {
+            for (var name in listeners) {
+                values[id] += 0.1;
+                var message = {body:"{\"deviceId\":\"Dings " + id + "\",\"creationTime\": " + Date.now() / 1000 + ",\"payload\": " + Math.sin(values[id]) + "}"};
+                listeners[name].send(message);
+            }
+        }, 1000);
+    }, 1000 * Math.random(), i);
+}
