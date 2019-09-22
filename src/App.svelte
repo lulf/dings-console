@@ -104,7 +104,7 @@
   // client.options.rejectUnauthorized = false;
   // var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqps"]), "reconnect":false});
   var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqp"]), "reconnect":false});
-  connection.open_receiver("events");
+  connection.open_receiver({source:{address:"events",filter:{"offset": 0}}});
 </script>
 
 <style>
