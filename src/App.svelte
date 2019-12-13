@@ -1,21 +1,19 @@
 <script>
   import ApolloClient from 'apollo-boost';
-  import client from 'rhea';
   import Chart from 'chart.js';
+  import gql from "graphql-tag";
 
   const client = new ApolloClient({
-    uri: 'https://127.0.0.1:8080'
+    uri: 'http://127.0.0.1:8080/graphql'
   });
 
-  console.log("Creaating graphql sub");
-  const querySubscription = client.query({
-    query: device,
-    variables: {
-      id
-    },
+  console.log("Creating graphql sub");
+  client.query({
+    query: gql`query Query {devices {id, name, description, enabled, sensors}}`,
   }).then(res => {
     console.log("Result!: " + res);
   });
+  var deviceData = [];
 
 //  function unused("message", function (context) {
 //      //console.log("Got message: " + context.message.body);
@@ -140,9 +138,11 @@
 {#each Array.from(deviceData.keys()) as device}
 <tr>
 <td>{device}</td>
+<!--
 <td>{lastValue[device].fdate}</td>
 <td>{lastValue[device].data}</td>
 <td><canvas id="chart_{sanitize_device_id(device)}" width="400" height="150"></canvas></td>
+-->
 </tr>
 {/each}
 
