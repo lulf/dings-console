@@ -9,11 +9,37 @@
 
   console.log("Creating graphql sub");
   client.query({
-    query: gql`query Query {devices {id, name, description, enabled, sensors}}`,
+    query: gql`query Query {
+      devices {
+        id
+        name
+        description
+        enabled
+        sensors
+      }
+    }
+  `,
   }).then(res => {
-    console.log("Result!: " + res);
+    for (var idx in res.data.devices) {
+      var device = res.data.devices[idx];
+      console.log("Id: " + device.id);
+      client.query({
+        query: gql`query Query {
+          events (deviceId: "${device.id}"){
+            creationTime
+            temperature
+            motion
+          }
+        }
+      `,
+      }).then(eventres => {
+        console.log("Events!: " + JSON.stringify(eventres));
+      });
+    }
+    console.log("Result!: " + JSON.stringify(res));
   });
   var deviceData = [];
+  console.log("HEI!");
 
 //  function unused("message", function (context) {
 //      //console.log("Got message: " + context.message.body);
@@ -135,15 +161,15 @@
 <th>Siste måling</th>
 <th>Historikk</th>
 </tr>
+<!--
 {#each Array.from(deviceData.keys()) as device}
 <tr>
 <td>{device}</td>
-<!--
 <td>{lastValue[device].fdate}</td>
 <td>{lastValue[device].data}</td>
 <td><canvas id="chart_{sanitize_device_id(device)}" width="400" height="150"></canvas></td>
--->
 </tr>
 {/each}
+-->
 
 </table>
