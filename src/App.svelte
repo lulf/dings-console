@@ -4,7 +4,7 @@
   import gql from "graphql-tag";
 
   const client = new ApolloClient({
-    uri: 'http://127.0.0.1:8080/graphql'
+    uri: 'http://api.teig.cloud:8080/graphql'
   });
 
   console.log("Creating graphql sub");
