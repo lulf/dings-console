@@ -12,7 +12,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 6 * 60 * 60; // 6 hours
+  var window = 24 * 60 * 60; // 24 hours
   var now = Math.floor(Date.now() / 1000);
   var since = now - window; 
   console.log("Since " + since);
@@ -77,8 +77,8 @@
   var updateCharts = function () {
     for (var [deviceId, sensors] of deviceData) {
       for (var [sensorId, sensorData] of sensors) {
-        var date = new Date(sensorData.timestamp * 1000);
-        var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+        /*var date = new Date(sensorData.timestamp);
+        var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();*/
 
         var chartName = "chart_" + deviceId + "_" + sensorId;
         if (charts[chartName] === undefined) {
@@ -91,7 +91,9 @@
                 {
                   fill: false,
                   label: 'Motion',
-                  data: sensorData.map(function (v) { return v.value ? 1 : 0; }),
+                  data: sensorData
+                    // .filter(function (v) { return v.value === true; })
+                    .map(function (v) { return v.value === true ? 1 : 0; }),
                   borderColor: '#fe8b36',
                   backgroundColor: '#fe8b36',
                   lineTension: 0,
