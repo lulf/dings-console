@@ -8,6 +8,14 @@
   });
 
   console.log("Creating graphql sub");
+  var deviceData = new Map();
+  var lastValue = {};
+  var lastUpdate = {};
+  var charts = {};
+  let sanitize_device_id = function(id) {
+      return id.toLowerCase().split(" ").join("_");
+  };
+
   client.query({
     query: gql`query Query {
       devices {
@@ -23,6 +31,14 @@
     for (var idx in res.data.devices) {
       var device = res.data.devices[idx];
       console.log("Id: " + device.id);
+      if (deviceData.get(device.id) === undefined) {
+        var sensorData = new Map();
+        for (var sensor in device.sensors) {
+          sensorData.set(sensor, [])
+        }
+        deviceData.set(device.id, sensorData);
+      }
+      
       client.query({
         query: gql`query Query {
           events (deviceId: "${device.id}"){
@@ -34,50 +50,39 @@
       `,
       }).then(eventres => {
         console.log("Events!: " + JSON.stringify(eventres));
-      });
-    }
-    console.log("Result!: " + JSON.stringify(res));
-  });
-  var deviceData = [];
-  console.log("HEI!");
+        var events = eventres.data.events
+        for (var eidx in events) {
+          var data = events[eidx];
+          
 
-//  function unused("message", function (context) {
-//      //console.log("Got message: " + context.message.body);
-//      var data = JSON.parse(context.message.body);
-//      if (deviceData.get(data.deviceId) === undefined) {
-//        deviceData.set(data.deviceId, []);
-//      }
-//
-//      var date = new Date(data.creationTime * 1000);
-//      // TODO: Fix this ugly bugly stuff and use proper formatter
-//      var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-//      var value = {timestamp: data.creationTime, data: data.payload, fdate: formatted_date, date: date};
-//      if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId].timestamp < data.creationTime) {
-//         lastValue[data.deviceId] = value;
-//      }
-//      deviceData.get(data.deviceId).push(value);
-//      deviceData = deviceData;
-//      lastValue = lastValue;
-//
-//      // Update chart for device
-//      if (charts[data.deviceId] === undefined) {
-//          var canvasId = sanitize_device_id("chart_" + data.deviceId);
-//          var element = document.getElementById(canvasId);
-//          if (element != null) {
-//            var ctx = element.getContext('2d');
-//
-//            const cdata = {
-//                  labels: deviceData.get(data.deviceId).map(function (v) { return v.date; }),
-//                  // deviceData.get(data.deviceId).map(function (v) { return v.date; }),
-//                  datasets: [{
-//                            fill: false,
-//                            label: 'Temperatur',
-//                            data: deviceData.get(data.deviceId).map(function (v) { return v.data; }),
-//                            borderColor: '#fe8b36',
-//                            backgroundColor: '#fe8b36',
-//                            lineTension: 0
-//                  }]
-//            };
+          var date = new Date(data.creationTime * 1000);
+          var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+          var value = {timestamp: data.creationTime, data: data.payload, fdate: formatted_date, date: date};
+          if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId].timestamp < data.creationTime) {
+            lastValue[data.deviceId] = value;
+          }
+
+          deviceData.get(data.deviceId).push(value);
+          deviceData = deviceData;
+          lastValue = lastValue;
+
+          if (charts[data.deviceId] === undefined) {
+            var canvasId = sanitize_device_id("chart_" + data.deviceId);
+            var element = document.getElementById(canvasId);
+            if (element != null) {
+              var ctx = element.getContext('2d');
+              const cdata = {
+                labels: deviceData.get(data.deviceId).map(function (v) { return v.date; }),
+                datasets: [
+                  {
+                    fill: false,
+                    label: 'Temperatur',
+                    data: deviceData.get(data.deviceId).map(function (v) { return v.data; }),
+                            borderColor: '#fe8b36',
+                            backgroundColor: '#fe8b36',
+                            lineTension: 0
+                  }]
+            };
 //
 //            const options = {
 //                  legend: {
@@ -121,6 +126,15 @@
 //                                                 dataset.data.push(value.data);
 //           });
 //           chart.update();
+      });
+    }
+  });
+  console.log("HEI!");
+
+//  function unused("message", function (context) {
+//
+//      // Update chart for device
+
 //         }
 //  });
 //  client.on("connection_open", function (context) {
