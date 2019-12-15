@@ -8,16 +8,15 @@
   });
 
   console.log("Creating graphql sub");
+  var sensorTypes = ["motion", "temperature"];
   var deviceData = new Map();
-  var lastValue = {};
-  var lastUpdate = {};
+  var deviceInfo = new Map();
   var charts = {};
-  let sanitize_device_id = function(id) {
-      return id.toLowerCase().split(" ").join("_");
-  };
-
-  client.query({
-    query: gql`query Query {
+  var window = 6 * 60 * 60; // 6 hours
+  var now = Math.floor(Date.now() / 1000);
+  var since = now - window; 
+  console.log("Since " + since);
+  const deviceQuery = gql`query Query {
       devices {
         id
         name
@@ -25,132 +24,155 @@
         enabled
         sensors
       }
-    }
-  `,
-  }).then(res => {
-    for (var idx in res.data.devices) {
-      var device = res.data.devices[idx];
-      console.log("Id: " + device.id);
-      if (deviceData.get(device.id) === undefined) {
-        var sensorData = new Map();
-        for (var sensor in device.sensors) {
-          sensorData.set(sensor, [])
+    }`;
+
+
+  const deviceObservable = client.watchQuery({query: deviceQuery, pollInterval: 10000});
+  deviceObservable.subscribe({
+    next: ({data}) => {
+      for (var idx in data.devices) {
+        var device = data.devices[idx];
+        console.log("Id: " + device.id);
+        if (deviceData.get(device.id) === undefined) {
+          var sensorData = new Map();
+          for (var sensorIdx in device.sensors) {
+            var sensor = device.sensors[sensorIdx];
+            console.log("Registering sensor " + sensor + " for device " + device.id);
+            sensorData.set(sensor, []);
+          }
+          deviceData.set(device.id, sensorData);
+          deviceInfo.set(device.id, device);
         }
-        deviceData.set(device.id, sensorData);
+        
+        const eventObservable = client.watchQuery({
+          query: gql`query Query {
+            events (deviceId: "${device.id}", since: ${since}) {
+              creationTime
+              data {
+                temperature
+                motion
+              }
+            }
+          }`,
+          pollInterval: 5000,
+        });
+        eventObservable.subscribe({
+          next: ({data}) => {
+            var events = data.events
+            for (var eidx in events) {
+              var event = events[eidx];
+              for (var dataKey in event.data) {
+                if (deviceData.get(device.id).get(dataKey) !== undefined) {
+                  var entry = {timestamp: event.creationTime, value: event.data[dataKey]};
+                  deviceData.get(device.id).get(dataKey).push(entry);
+                }
+              }
+            }  
+          }
+        });
       }
-      
-      client.query({
-        query: gql`query Query {
-          events (deviceId: "${device.id}"){
-            creationTime
-            temperature
-            motion
-          }
-        }
-      `,
-      }).then(eventres => {
-        console.log("Events!: " + JSON.stringify(eventres));
-        var events = eventres.data.events
-        for (var eidx in events) {
-          var data = events[eidx];
-          
-
-          var date = new Date(data.creationTime * 1000);
-          var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-          var value = {timestamp: data.creationTime, data: data.payload, fdate: formatted_date, date: date};
-          if (lastValue[data.deviceId] === undefined || lastValue[data.deviceId].timestamp < data.creationTime) {
-            lastValue[data.deviceId] = value;
-          }
-
-          deviceData.get(data.deviceId).push(value);
-          deviceData = deviceData;
-          lastValue = lastValue;
-
-          if (charts[data.deviceId] === undefined) {
-            var canvasId = sanitize_device_id("chart_" + data.deviceId);
-            var element = document.getElementById(canvasId);
-            if (element != null) {
-              var ctx = element.getContext('2d');
-              const cdata = {
-                labels: deviceData.get(data.deviceId).map(function (v) { return v.date; }),
-                datasets: [
-                  {
-                    fill: false,
-                    label: 'Temperatur',
-                    data: deviceData.get(data.deviceId).map(function (v) { return v.data; }),
-                            borderColor: '#fe8b36',
-                            backgroundColor: '#fe8b36',
-                            lineTension: 0
-                  }]
-            };
-//
-//            const options = {
-//                  legend: {
-//                          display: false
-//                  },
-//                  fill: false,
-//                  responsive: true,
-//                  scales: {
-//                          xAxes: [{
-//                                type: 'time',
-//                                display: true,
-//                                scaleLabel: {
-//                                            display: true,
-//                                            labelString: "Date"
-//                                }
-//                          }],
-//                          yAxes: [{
-//                                ticks: {
-//                                        padding: 5
-//                                },
-//                                display: true,
-//                                scaleLabel: {
-//                                            display: true,
-//                                            labelString: "Temperatur"
-//                                }
-//                          }]
-//                  }
-//            };
-//
-//            var chart = new Chart(ctx, {
-//                type: 'line',
-//                data: cdata,
-//                options: options
-//            });
-//            charts[data.deviceId] = chart;
-//            }
-//         } else {
-//           chart = charts[data.deviceId];
-//           chart.data.labels.push(value.date);
-//           chart.data.datasets.forEach((dataset) => {
-//                                                 dataset.data.push(value.data);
-//           });
-//           chart.update();
-      });
     }
   });
-  console.log("HEI!");
 
-//  function unused("message", function (context) {
-//
-//      // Update chart for device
+  var updateCharts = function () {
+    for (var [deviceId, sensors] of deviceData) {
+      for (var [sensorId, sensorData] of sensors) {
+        var date = new Date(sensorData.timestamp * 1000);
+        var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
 
-//         }
-//  });
-//  client.on("connection_open", function (context) {
-//      console.log("Connected!");
-//  });
-/*
-  var ws = client.websocket_connect(WebSocket);
-  console.log("Connecting");
-  client.options.username = "test";
-  client.options.password = "test";
-  // TODO: Enable TLS
-  // client.options.transport = "tls";
-  // client.options.rejectUnauthorized = false;
-  // var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqps"]), "reconnect":false});
-  var connection = client.connect({"connection_details":ws(server, ["binary", "AMQPWSB10", "amqp"]), "reconnect":false});
-  connection.open_receiver({source:{address:"events",filter:{"offset": 0}}});*/
+        var chartName = "chart_" + deviceId + "_" + sensorId;
+        if (charts[chartName] === undefined) {
+          var element = document.getElementById(chartName);
+          if (element != null) {
+            var ctx = element.getContext('2d');
+            const cdata = {
+              labels: sensorData.map(function (v) { return new Date(v.timestamp * 1000); }),
+              datasets: [
+                {
+                  fill: false,
+                  label: 'Motion',
+                  data: sensorData.map(function (v) { return v.value ? 1 : 0; }),
+                  borderColor: '#fe8b36',
+                  backgroundColor: '#fe8b36',
+                  lineTension: 0,
+                  steppedLine: true,
+                }
+              ]
+            };
+            const options = {
+              legend: {
+                display: false
+              },
+              fill: false,
+              responsive: true,
+              scales: {
+                xAxes: [
+                  {
+                    type: 'time',
+                    display: true,
+                    ticks: {
+                      min: since,
+                      max: now
+                    },
+                    scaleLabel: {
+                      display: true,
+                      labelString: "Date"
+                    }
+                  }
+                ],
+                yAxes: [
+                  {
+                    ticks: {
+                      padding: 5,
+                      display: false,
+                      beginAtZero: true,
+                      min: 0,
+                      max: 1.5,
+                    },
+                    display: true,
+                    scaleLabel: {
+                      display: true,
+                      labelString: "Motion"
+                    }
+                  }
+                ]
+              }
+            };
+            var chart = new Chart(ctx, {
+              type: 'line',
+              data: cdata,
+              options: options
+            });
+            charts[chartName] = chart;
+          }
+        }/* else {
+          chart = charts[chartName];
+          chart.data.labels.push(value.date);
+          chart.data.datasets.forEach((dataset) => {
+            dataset.data.push(value.data);
+           });
+           chart.update();
+        }
+        */
+      }
+    }
+  };
+
+  var updateState = function () {
+  /*
+    for (var [deviceId, sensors] of deviceData) {
+        for (var [sensorId, sensorData] of sensors) {
+            console.log("Data for " + deviceId + " sensor " + sensorId + ": " + JSON.stringify(sensorData));
+        }
+    }
+    */
+    updateCharts();
+    deviceData = deviceData;
+    deviceInfo = deviceInfo;
+    setTimeout(updateState, 5000);
+  };
+
+  setTimeout(updateState, 5000);
 </script>
 
 <style>
@@ -164,26 +186,24 @@
 
 <h1>Teig Dashboard</h1>
 
-<h2>Dingser (totalt {deviceData.size})</h2>
-
-<!-- TODO: Support groups -->
+<h2>Dingser (totalt {deviceInfo.size})</h2>
 
 <table>
 <tr>
 <th>Dings</th>
-<th>Sist oppdatert</th>
-<th>Siste måling</th>
-<th>Historikk</th>
+<th colspan="{sensorTypes.length}">Historikk</th>
 </tr>
-<!--
 {#each Array.from(deviceData.keys()) as device}
 <tr>
-<td>{device}</td>
-<td>{lastValue[device].fdate}</td>
-<td>{lastValue[device].data}</td>
-<td><canvas id="chart_{sanitize_device_id(device)}" width="400" height="150"></canvas></td>
+<td>
+{deviceInfo.get(device).description}
+</td>
+{#each Array.from(deviceData.get(device).keys()) as sensor}
+<td>
+<canvas id="chart_{device}_{sensor}" width="400" height="150"></canvas>
+</td>
+{/each}
 </tr>
 {/each}
--->
 
 </table>
