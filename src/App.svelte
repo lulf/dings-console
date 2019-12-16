@@ -12,10 +12,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 24 * 60 * 60; // 24 hours
-  var now = Math.floor(Date.now() / 1000);
-  var since = now - window; 
-  console.log("Since " + since);
+  var window = 1 * 60 * 60; // 24 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -30,6 +27,8 @@
   const deviceObservable = client.watchQuery({query: deviceQuery, pollInterval: 10000});
   deviceObservable.subscribe({
     next: ({data}) => {
+      var now = Math.floor(Date.now() / 1000);
+      var since = now - window; 
       for (var idx in data.devices) {
         var device = data.devices[idx];
         console.log("Id: " + device.id);
@@ -75,6 +74,8 @@
   });
 
   var updateCharts = function () {
+    var now = Math.floor(Date.now() / 1000);
+    var since = now - window; 
     for (var [deviceId, sensors] of deviceData) {
       for (var [sensorId, sensorData] of sensors) {
         /*var date = new Date(sensorData.timestamp);
@@ -102,22 +103,30 @@
               ]
             };
             const options = {
+              elements: {
+                point: {
+                  radius: 0
+                }
+              },
               legend: {
                 display: false
               },
               fill: false,
               responsive: true,
               scales: {
+                bounds: 'ticks',
                 xAxes: [
                   {
                     type: 'time',
                     display: true,
+                    distribution: 'linear',
+                    source: 'labels',
+                    bounds: 'ticks',
                     ticks: {
-                      min: since,
-                      max: now
+                      bounds: 'ticks',
                     },
                     scaleLabel: {
-                      display: true,
+                      display: false,
                       labelString: "Date"
                     }
                   }
@@ -202,7 +211,7 @@
 </td>
 {#each Array.from(deviceData.get(device).keys()) as sensor}
 <td>
-<canvas id="chart_{device}_{sensor}" width="400" height="150"></canvas>
+<canvas id="chart_{device}_{sensor}" width="800" height="200"></canvas>
 </td>
 {/each}
 </tr>
