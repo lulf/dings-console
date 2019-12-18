@@ -1,2 +1,2 @@
-# teig-dashboard
-Dashboard for Teig Devices
+# teig-console
+Console for Teig Device management

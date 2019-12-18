@@ -11,7 +11,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 1 * 30 * 60; // 24 hours
+  var window = 4 * 60 * 60; // 24 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -209,7 +209,7 @@
   }
 </style>
 
-<h1>Teig Dashboard</h1>
+<h1>Teig Console</h1>
 
 <h2>Dingser (totalt {deviceInfo.size})</h2>
 
