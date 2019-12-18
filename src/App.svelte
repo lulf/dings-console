@@ -131,6 +131,7 @@
               }
             ]
           };
+          cdata.labels.push(new Date(now * 1000));
           var options = {
             animation: false,
             legend: {
@@ -145,7 +146,7 @@
                   type: 'time',
                   display: true,
                   distribution: 'linear',
-                  source: 'labels',
+                  source: 'auto',
                   bounds: 'ticks',
                   ticks: {
                     bounds: 'ticks',
