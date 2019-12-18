@@ -119,9 +119,12 @@
         sensorData = sensorData.filter(function (v) {
           return v.timestamp >= since;
         });
+        labels = [new Date(since * 1000)];
+        labels.push(sensorData.map(function (v) { return new Date(v.timestamp * 1000); }));
+        labels.push(new Date(now * 1000));
         if (element != null) {
           var cdata = {
-            labels: sensorData.map(function (v) { return new Date(v.timestamp * 1000); }),
+            labels: labels,
             datasets: [
               {
                 fill: false,
@@ -131,7 +134,6 @@
               }
             ]
           };
-          cdata.labels.push(new Date(now * 1000));
           var options = {
             animation: false,
             legend: {
