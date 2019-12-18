@@ -12,7 +12,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 1 * 60 * 60; // 24 hours
+  var window = 24 * 60 * 60; // 24 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -67,16 +67,18 @@
                 }
               }
             }  
+            updateChart(device.id);
           }
         });
       }
     }
   });
 
-  var updateCharts = function () {
+  var updateChart = function (deviceId) {
     var now = Math.floor(Date.now() / 1000);
     var since = now - window; 
-    for (var [deviceId, sensors] of deviceData) {
+    var sensors = deviceData.get(deviceId);
+    if (sensors !== undefined) {
       for (var [sensorId, sensorData] of sensors) {
         /*var date = new Date(sensorData.timestamp);
         var formatted_date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();*/
@@ -177,13 +179,12 @@
         }
     }
     */
-    updateCharts();
     deviceData = deviceData;
     deviceInfo = deviceInfo;
     setTimeout(updateState, 5000);
   };
 
-  setTimeout(updateState, 5000);
+  setTimeout(updateState, 0);
 </script>
 
 <style>
