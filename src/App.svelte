@@ -11,7 +11,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 4 * 60 * 60; // 24 hours
+  var window = 4 * 60 * 60; // 4 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -81,15 +81,59 @@
     }
   });
 
-  var motionChart = function (options, dataset, sensorData) {
-    dataset.label = 'Motion';
-    dataset.data = sensorData.map(function (v) { return v.motion === true ? 1 : 0; });
-    dataset.steppedLine = true;
+  var defaultChartOptions = function(min, max) {
+    return {
+      animation: false,
+      legend: {
+        display: false
+      },
+      fill: false,
+      responsive: true,
+      scales: {
+        bounds: 'ticks',
+        xAxes: [
+          {
+            type: 'time',
+            display: true,
+            distribution: 'linear',
+            time: {
+              min: new Date(min * 1000),
+              max: new Date(max * 1000),
+            },
+            scaleLabel: {
+              display: false,
+              labelString: "Date"
+            }
+          }
+        ],
+      }
+    };
+  };
+
+  const chartBackgroundColor = '#fe8b36';
+  const chartBorderColor = '#fe8b36';
+
+  var motionChart = function (options, cdata, sensorData) {
+    cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
+
+    cdata.datasets = [
+      {
+        fill: false,
+        borderColor: chartBorderColor,
+        backgroundColor: chartBackgroundColor,
+        lineTension: 0,
+        label: 'Motion',
+        steppedLine: true,
+        data: sensorData.map(function (v) { return v.motion === true ? 1 : 0; }),
+      }
+    ];
+
     options.elements = {
       point: {
         radius: 0
       }
     };
+
     options.scales.yAxes = [
       {
         ticks: {
@@ -108,6 +152,7 @@
     ];
   };
 
+
   var updateChart = function (deviceId) {
     var now = Math.floor(Date.now() / 1000);
     var since = now - window; 
@@ -116,53 +161,15 @@
       for (var [sensorId, sensorData] of sensors) {
         var chartName = "chart_" + deviceId + "_" + sensorId;
         var element = document.getElementById(chartName);
-        sensorData = sensorData.filter(function (v) {
-          return v.timestamp >= since;
-        });
-        labels = [new Date(since * 1000)];
-        labels.push(sensorData.map(function (v) { return new Date(v.timestamp * 1000); }));
-        labels.push(new Date(now * 1000));
         if (element != null) {
-          var cdata = {
-            labels: labels,
-            datasets: [
-              {
-                fill: false,
-                borderColor: '#fe8b36',
-                backgroundColor: '#fe8b36',
-                lineTension: 0,
-              }
-            ]
-          };
-          var options = {
-            animation: false,
-            legend: {
-              display: false
-            },
-            fill: false,
-            responsive: true,
-            scales: {
-              bounds: 'ticks',
-              xAxes: [
-                {
-                  type: 'time',
-                  display: true,
-                  distribution: 'linear',
-                  source: 'auto',
-                  bounds: 'ticks',
-                  ticks: {
-                    bounds: 'ticks',
-                  },
-                  scaleLabel: {
-                    display: false,
-                    labelString: "Date"
-                  }
-                }
-              ],
-            }
-          };
+          sensorData = sensorData.filter(function (v) {
+            return v.timestamp >= since;
+          });
+
+          var options = defaultChartOptions(since, now);
+          var cdata = {};
           if (sensorId == "motion") {
-            motionChart(options, cdata.datasets[0], sensorData);
+            motionChart(options, cdata, sensorData);
           }
 
           console.log("Cdata (data: " + cdata.datasets[0].data.length + ", labels: " + cdata.labels.length + ": " + JSON.stringify(cdata.datasets[0].data));
