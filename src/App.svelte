@@ -175,12 +175,13 @@
         borderColor: '#ae8567',
         backgroundColor: '#ae8567',
         lineTension: 0,
-        label: 'Felt temperature',
+        label: 'Humiture',
         steppedLine: false,
         data: sensorData.map(function (v) { return v.temperature.heatindexCelcius; }),
       }
     ];
 
+    options.legend.display = true;
     options.scales.yAxes = [
       {
         ticks: {
@@ -270,12 +271,12 @@
 
 <h1>Teig Console</h1>
 
-<h2>Dingser (totalt {deviceInfo.size})</h2>
+<h2>Devices (total: {deviceInfo.size})</h2>
 
 <table>
 <tr>
 <th>Dings</th>
-<th colspan="{sensorTypes.length}">Historikk</th>
+<th colspan="{sensorTypes.length}">History</th>
 </tr>
 {#each Array.from(deviceInfo.keys()) as device}
 <tr>
