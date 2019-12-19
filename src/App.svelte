@@ -47,7 +47,11 @@
             events (deviceId: "${device.id}", since: ${since}) {
               creationTime
               data {
-                temperature
+                temperature {
+                  celcius
+                  humidity
+                  heatindexCelcius
+                }
                 motion
               }
             }
@@ -164,7 +168,16 @@
         lineTension: 0,
         label: 'Temperature',
         steppedLine: false,
-        data: sensorData.map(function (v) { return v.temperature; }),
+        data: sensorData.map(function (v) { return v.temperature.celcius; }),
+      },
+      {
+        fill: false,
+        borderColor: '#ae8567',
+        backgroundColor: '#ae8567',
+        lineTension: 0,
+        label: 'Felt temperature',
+        steppedLine: false,
+        data: sensorData.map(function (v) { return v.temperature.heatindexCelcius; }),
       }
     ];
 
@@ -172,13 +185,13 @@
       {
         ticks: {
           padding: 5,
-          display: false,
+          display: true,
           beginAtZero: true,
         },
         display: true,
         scaleLabel: {
           display: true,
-          labelString: "Temperature"
+          labelString: "Temperature (Celcius)"
         }
       }
     ];
