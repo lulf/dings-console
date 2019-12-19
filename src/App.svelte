@@ -7,11 +7,11 @@
     uri: 'http://api.teig.cloud:8080/graphql'
   });
 
-  var sensorTypes = ["motion", "temperature"];
+  const sensorTypes = ["motion", "temperature"];
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  var window = 4 * 60 * 60; // 4 hours
+  const window = 4 * 60 * 60; // 4 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -26,14 +26,14 @@
   const deviceObservable = client.watchQuery({query: deviceQuery, pollInterval: 10000});
   deviceObservable.subscribe({
     next: ({data}) => {
-      var now = Math.floor(Date.now() / 1000);
-      var since = now - window; 
+      const now = Math.floor(Date.now() / 1000);
+      const since = now - window; 
       for (var idx in data.devices) {
-        var device = data.devices[idx];
+        const device = data.devices[idx];
         if (deviceData.get(device.id) === undefined) {
           var sensorData = new Map();
           for (var sensorIdx in device.sensors) {
-            var sensor = device.sensors[sensorIdx];
+            const sensor = device.sensors[sensorIdx];
             console.log("Registering sensor " + sensor + " for device " + device.id);
             sensorData.set(sensor, []);
           }
@@ -59,9 +59,10 @@
             var events = data.events
             var entries = {};
             for (var eidx in events) {
-              var event = events[eidx];
+              const event = events[eidx];
               for (var dataKey in event.data) {
                 if (deviceData.get(device.id).get(dataKey) !== undefined) {
+                  // console.log("Found defined sensor " + dataKey + " for " + device.id);
                   var entry = {timestamp: event.creationTime};
                   entry[dataKey] = event.data[dataKey];
                   if (entries[dataKey] === undefined) {
@@ -113,7 +114,7 @@
   const chartBackgroundColor = '#fe8b36';
   const chartBorderColor = '#fe8b36';
 
-  var motionChart = function (options, cdata, sensorData) {
+  const motionChart = function (options, cdata, sensorData) {
     cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
     cdata.datasets = [
@@ -152,15 +153,46 @@
     ];
   };
 
+  const temperatureChart = function (options, cdata, sensorData) {
+    cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
-  var updateChart = function (deviceId) {
-    var now = Math.floor(Date.now() / 1000);
-    var since = now - window; 
-    var sensors = deviceData.get(deviceId);
+    cdata.datasets = [
+      {
+        fill: false,
+        borderColor: chartBorderColor,
+        backgroundColor: chartBackgroundColor,
+        lineTension: 0,
+        label: 'Temperature',
+        steppedLine: false,
+        data: sensorData.map(function (v) { return v.temperature; }),
+      }
+    ];
+
+    options.scales.yAxes = [
+      {
+        ticks: {
+          padding: 5,
+          display: false,
+          beginAtZero: true,
+        },
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: "Temperature"
+        }
+      }
+    ];
+  };
+
+
+  const updateChart = function (deviceId) {
+    const now = Math.floor(Date.now() / 1000);
+    const since = now - window; 
+    const sensors = deviceData.get(deviceId);
     if (sensors !== undefined) {
       for (var [sensorId, sensorData] of sensors) {
-        var chartName = "chart_" + deviceId + "_" + sensorId;
-        var element = document.getElementById(chartName);
+        const chartName = "chart_" + deviceId + "_" + sensorId;
+        const element = document.getElementById(chartName);
         if (element != null) {
           sensorData = sensorData.filter(function (v) {
             return v.timestamp >= since;
@@ -170,9 +202,13 @@
           var cdata = {};
           if (sensorId == "motion") {
             motionChart(options, cdata, sensorData);
+          } else if (sensorId == "temperature") {
+            temperatureChart(options, cdata, sensorData);
           }
 
-          console.log("Cdata (data: " + cdata.datasets[0].data.length + ", labels: " + cdata.labels.length + ": " + JSON.stringify(cdata.datasets[0].data));
+          if (cdata.datasets !== undefined && cdata.datasets.length > 0) {
+            console.log("Cdata (data: " + cdata.datasets[0].data.length + ", labels: " + cdata.labels.length + ": " + JSON.stringify(cdata.datasets[0].data));
+          }
           var ctx = element.getContext('2d');
           if (charts[chartName] === undefined) {
             console.log("Creating new chart " + chartName);
@@ -184,7 +220,7 @@
             charts[chartName] = chart;
           } else {
             console.log("Updating chart " + chartName);
-            chart = charts[chartName];
+            var chart = charts[chartName];
             chart.data = cdata;
             chart.options = options;
             chart.update();
@@ -194,7 +230,7 @@
     }
   };
 
-  var updateState = function () {
+  const updateState = function () {
     for (var [deviceId, sensors] of deviceData) {
         updateChart(deviceId);
         /*
