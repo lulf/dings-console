@@ -7,11 +7,20 @@
     uri: 'http://api.teig.cloud:8080/graphql'
   });
 
+  // Supported sensor types
   const sensorTypes = ["motion", "temperature"];
-  var deviceData = new Map();
+  const window = 24 * 60 * 60; // 24 hour window for graphs
+
+  // Data structure storing device information, updated by graphql watch query
   var deviceInfo = new Map();
+
+  // Data structure storing sensor data per device per sensor, updated by graphql watch query
+  var deviceData = new Map();
+
+  // Map of charts present in the DOM
   var charts = {};
-  const window = 24 * 60 * 60; // 24 hours
+
+  // GraphQL query for querying devices
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -22,7 +31,25 @@
       }
     }`;
 
+  // Function constructing GraphQL query for watching events
+  const eventQuery = function (id, since) {
+    return gql`query Query {
+      events (deviceId: "${id}", since: ${since}) {
+        creationTime
+        data {
+          temperature {
+            celcius
+            humidity
+            heatindexCelcius
+          }
+          motion
+        }
+      }
+    }`;
+  };
 
+
+  // Poll device data every 10 seconds
   const deviceObservable = client.watchQuery({query: deviceQuery, pollInterval: 10000});
   deviceObservable.subscribe({
     next: ({data}) => {
@@ -41,27 +68,17 @@
           deviceInfo.set(device.id, device);
         }
         
+        // Update state to trigger redraw
         deviceInfo = deviceInfo;
-        const eventObservable = client.watchQuery({
-          query: gql`query Query {
-            events (deviceId: "${device.id}", since: ${since}) {
-              creationTime
-              data {
-                temperature {
-                  celcius
-                  humidity
-                  heatindexCelcius
-                }
-                motion
-              }
-            }
-          }`,
-          pollInterval: 5000,
-        });
+
+        // Create subscription for watching events for this device, polling every 5 seconds
+        const eventObservable = client.watchQuery({query: eventQuery(device.id, since), pollInterval: 5000});
         eventObservable.subscribe({
           next: ({data}) => {
             var events = data.events
             var entries = {};
+
+            // Process events and format as expected by chart processing
             for (var eidx in events) {
               const event = events[eidx];
               for (var dataKey in event.data) {
@@ -79,6 +96,8 @@
             for (var dataKey in entries) {
               deviceData.get(device.id).set(dataKey, entries[dataKey]);
             }
+
+            // Update chart data
             updateChart(device.id);
           }
         });
@@ -86,7 +105,9 @@
     }
   });
 
-  var defaultChartOptions = function(min, max) {
+
+  // Chart options to reduce duplication between chart types
+  const defaultChartOptions = function(min, max) {
     return {
       animation: false,
       legend: {
@@ -115,17 +136,15 @@
     };
   };
 
-  const chartBackgroundColor = '#fe8b36';
-  const chartBorderColor = '#fe8b36';
-
+  // Motion charts show 'motion detected' events
   const motionChart = function (options, cdata, sensorData) {
     cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
     cdata.datasets = [
       {
         fill: false,
-        borderColor: chartBorderColor,
-        backgroundColor: chartBackgroundColor,
+        borderColor: '#fe8b36',
+        backgroundColor: '#fe8b36',
         lineTension: 0,
         label: 'Motion',
         steppedLine: true,
@@ -157,14 +176,15 @@
     ];
   };
 
+  // Temperature charts show temperature, potentially with multiple values
   const temperatureChart = function (options, cdata, sensorData) {
     cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
     cdata.datasets = [
       {
         fill: false,
-        borderColor: chartBorderColor,
-        backgroundColor: chartBackgroundColor,
+        borderColor: '#fe8b36',
+        backgroundColor: '#fe8b36',
         lineTension: 0,
         label: 'Temperature',
         steppedLine: false,
@@ -198,7 +218,7 @@
     ];
   };
 
-
+  // Update chart element in DOM for a given device
   const updateChart = function (deviceId) {
     const now = Math.floor(Date.now() / 1000);
     const since = now - window; 
@@ -208,6 +228,8 @@
         const chartName = "chart_" + deviceId + "_" + sensorId;
         const element = document.getElementById(chartName);
         if (element != null) {
+
+          // Filter data due to stale watch function
           sensorData = sensorData.filter(function (v) {
             return v.timestamp >= since;
           });
@@ -244,7 +266,8 @@
     }
   };
 
-  const updateState = function () {
+  // Regurarily re-render charts to ensure time window is moving
+  const updateCharts = function () {
     for (var [deviceId, sensors] of deviceData) {
         updateChart(deviceId);
         /*
@@ -253,10 +276,9 @@
         }
         */
     }
-    deviceInfo = deviceInfo;
-    setTimeout(updateState, 30000);
+    setTimeout(updateCharts, 30000);
   };
-  setTimeout(updateState, 30000);
+  setTimeout(updateCharts, 30000);
 
 </script>
 
