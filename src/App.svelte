@@ -11,7 +11,7 @@
   var deviceData = new Map();
   var deviceInfo = new Map();
   var charts = {};
-  const window = 4 * 60 * 60; // 4 hours
+  const window = 24 * 60 * 60; // 24 hours
   const deviceQuery = gql`query Query {
       devices {
         id
@@ -275,7 +275,7 @@
 
 <table>
 <tr>
-<th>Dings</th>
+<th>Description</th>
 <th colspan="{sensorTypes.length}">History</th>
 </tr>
 {#each Array.from(deviceInfo.keys()) as device}
