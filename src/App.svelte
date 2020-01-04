@@ -8,7 +8,7 @@
   });
 
   // Supported sensor types
-  const sensorTypes = ["motion", "temperature"];
+  const sensorTypes = ["motion", "temperature", "soil"];
   const window = 24 * 60 * 60; // 24 hour window for graphs
 
   // Data structure storing device information, updated by graphql watch query
@@ -43,6 +43,7 @@
             heatindexCelcius
           }
           motion
+          soil
         }
       }
     }`;
@@ -84,12 +85,14 @@
               for (var dataKey in event.data) {
                 if (deviceData.get(device.id).get(dataKey) !== undefined) {
                   // console.log("Found defined sensor " + dataKey + " for " + device.id);
-                  var entry = {timestamp: event.creationTime};
-                  entry[dataKey] = event.data[dataKey];
-                  if (entries[dataKey] === undefined) {
-                    entries[dataKey] = [];
+                  if (event.data[dataKey] != null) {
+                    var entry = {timestamp: event.creationTime};
+                    entry[dataKey] = event.data[dataKey];
+                    if (entries[dataKey] === undefined) {
+                        entries[dataKey] = [];
+                    }
+                    entries[dataKey].push(entry);
                   }
-                  entries[dataKey].push(entry);
                 }
               }
             }
@@ -188,7 +191,7 @@
         lineTension: 0,
         label: 'Temperature',
         steppedLine: false,
-        data: sensorData.map(function (v) { return v.temperature.celcius; }),
+        data: sensorData.filter(function(v) { return v.temperature != null; }).map(function (v) { return v.temperature.celcius; }),
       },
       {
         fill: false,
@@ -197,7 +200,7 @@
         lineTension: 0,
         label: 'Humiture',
         steppedLine: false,
-        data: sensorData.map(function (v) { return v.temperature.heatindexCelcius; }),
+        data: sensorData.filter(function(v) { return v.temperature != null; }).map(function (v) { return v.temperature.heatindexCelcius; }),
       }
     ];
 
@@ -213,6 +216,45 @@
         scaleLabel: {
           display: true,
           labelString: "Temperature (Celcius)"
+        }
+      }
+    ];
+  };
+
+  // Soil charts show soil moisture, potentially with multiple values
+  const soilChart = function (options, cdata, sensorData) {
+    cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
+
+    var numSensors = 0;
+    if (sensorData.length > 0) {
+       numSensors = sensorData[0].soil.length;
+    }
+
+    cdata.datasets = [];
+    for (var i = 0; i < numSensors; i++) {
+      cdata.datasets.push({
+        fill: false,
+        borderColor: '#fe8b36',
+        backgroundColor: '#fe8b36',
+        lineTension: 0,
+        label: 'Plant ' + (i + 1),
+        steppedLine: false,
+        data: sensorData.map(function (v) { return v.soil[i]; }),
+      });
+    }
+
+    options.legend.display = true;
+    options.scales.yAxes = [
+      {
+        ticks: {
+          padding: 5,
+          display: true,
+          beginAtZero: true,
+        },
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: "Soil conductivity"
         }
       }
     ];
@@ -240,6 +282,8 @@
             motionChart(options, cdata, sensorData);
           } else if (sensorId == "temperature") {
             temperatureChart(options, cdata, sensorData);
+          } else if (sensorId == "soil") {
+            soilChart(options, cdata, sensorData);
           }
 
           if (cdata.datasets !== undefined && cdata.datasets.length > 0) {
