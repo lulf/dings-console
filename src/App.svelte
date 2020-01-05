@@ -335,7 +335,7 @@
   }
 </style>
 
-<h1>Teig Console</h1>
+<h1>Dings Console</h1>
 
 <h2>Devices (total: {deviceInfo.size})</h2>
 

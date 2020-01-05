@@ -1,5 +1,5 @@
 {
-  "name": "teig-console",
+  "name": "dings-console",
   "version": "1.0.0",
   "devDependencies": {
     "chart.js": "^2.8.0",

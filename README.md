@@ -1,2 +1,2 @@
-# teig-console
-Console for Teig Device management
+# dings-console
+Console for dings management
