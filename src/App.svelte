@@ -249,7 +249,7 @@
         ticks: {
           padding: 5,
           display: true,
-          beginAtZero: true,
+          beginAtZero: false,
         },
         display: true,
         scaleLabel: {
