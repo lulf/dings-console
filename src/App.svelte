@@ -9,7 +9,10 @@
 
   // Supported sensor types
   const sensorTypes = ["motion", "temperature", "soil"];
-  const window = 24 * 60 * 60; // 24 hour window for graphs
+  const maxWindow = 30 * 24 * 60 * 60; // Up to a month
+  var window = 7 * 24 * 60 * 60; // Default 1 week window for graphs
+
+  var maxDate = new Date();
 
   // Data structure storing device information, updated by graphql watch query
   var deviceInfo = new Map();
@@ -204,6 +207,13 @@
       }
     ];
 
+    if (window > 80000) {
+      options.elements = {
+        point: {
+          radius: 0
+        }
+      };
+    }
     options.legend.display = true;
     options.scales.yAxes = [
       {
@@ -243,6 +253,13 @@
       });
     }
 
+    if (window > 80000) {
+      options.elements = {
+        point: {
+          radius: 0
+        }
+      };
+    }
     options.legend.display = true;
     options.scales.yAxes = [
       {
@@ -312,6 +329,7 @@
 
   // Regurarily re-render charts to ensure time window is moving
   const updateCharts = function () {
+    console.log("UPDATE CHARTS");
     for (var [deviceId, sensors] of deviceData) {
         updateChart(deviceId);
         /*
@@ -320,6 +338,8 @@
         }
         */
     }
+
+    maxDate = new Date();
     setTimeout(updateCharts, 30000);
   };
   setTimeout(updateCharts, 30000);
@@ -327,17 +347,30 @@
 </script>
 
 <style>
-  div {
-    border: 1px solid black;
-  }
   table, th, td {
     border: 1px solid black;
+  }
+  .slider {
+    width: 53%;
   }
 </style>
 
 <h1>Dings Console</h1>
 
-<h2>Devices (total: {deviceInfo.size})</h2>
+<p>
+Last updated: {maxDate}
+</p>
+
+<p>
+Time window: {window} seconds ago <br />
+</p>
+
+<div>
+<input id="windowrange" type="range" class="slider" value="{window}" min="0" max="{maxWindow}" bind:value={window} />
+</div>
+<div>
+<button on:click={updateCharts}>Update</button>
+</div>
 
 <table>
 <tr>
