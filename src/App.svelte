@@ -399,7 +399,7 @@
     width: 10%;
   }
   .chart {
-    width: 40%;
+    width: 45%;
     height: 300px;
   }
   .slider {
