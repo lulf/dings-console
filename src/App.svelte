@@ -390,7 +390,7 @@
   table {
     border: 0px solid black;
     border-collapse: collapse;
-    width: 70%;
+    width: 100%;
   }
   tr {
     border: 1px solid black;
@@ -403,7 +403,7 @@
     height: 300px;
   }
   .slider {
-    width: 70%;
+    width: 100%;
   }
 </style>
 
