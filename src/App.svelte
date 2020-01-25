@@ -12,6 +12,7 @@
   const sensorTypes = ["motion", "temperature", "soil"];
   const maxWindow = 30 * 24 * 60 * 60; // Up to a month
   var window = 7 * 24 * 60 * 60; // Default 1 week window for graphs
+  var invertedWindow = maxWindow - window;
 
   var maxDate = new Date();
 
@@ -378,6 +379,7 @@
 
   var dateSince = addSeconds(maxDate, -window).toString();
   const rangeUpdated = function() {
+    window = maxWindow - invertedWindow;
     updateCharts();
     dateSince = addSeconds(maxDate, -window).toString();
   };
@@ -451,7 +453,7 @@ Events since (adjust slider to change start date): {dateSince}
 <!--
 <div id='range' class="slider"></div> -->
 <div class="slidecontainer">
-<input id="windowrange" type="range" class="slider" value="{window}" step="3600" min="0" max="{maxWindow}" on:change="{() => rangeUpdated()}" bind:value={window} />
+<input id="windowrange" type="range" class="slider" value="{invertedWindow}" step="3600" min="0" max="{maxWindow}" on:change="{() => rangeUpdated()}" bind:value={invertedWindow} />
 </div>
 
 <table>
