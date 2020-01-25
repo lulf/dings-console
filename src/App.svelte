@@ -251,7 +251,14 @@
         lineTension: 0,
         label: 'Plant ' + (i + 1),
         steppedLine: false,
-        data: sensorData.map(function (v) { return v.soil[i]; }),
+        data: sensorData.map(function (v) {
+          if (v.soil[i] > 100) {
+            var value = 100 * ((1024.0 - v.soil[i]) / 1024.0);
+            return value;
+          } else {
+            return v.soil[i];
+          }
+        }),
       });
     }
 
@@ -269,11 +276,13 @@
           padding: 5,
           display: true,
           beginAtZero: false,
+          //min: 0,
+          //max: 100,
         },
         display: true,
         scaleLabel: {
           display: true,
-          labelString: "Soil conductivity"
+          labelString: "Soil moisture (%)"
         }
       }
     ];
