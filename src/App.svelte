@@ -2,6 +2,7 @@
   import ApolloClient from 'apollo-boost';
   import Chart from 'chart.js';
   import gql from "graphql-tag";
+  import slider from "nouislider";
 
   const client = new ApolloClient({
     uri: 'http://api.teig.cloud:8080/graphql'
@@ -327,8 +328,10 @@
     }
   };
 
+
   // Regurarily re-render charts to ensure time window is moving
   const updateCharts = function () {
+  
     console.log("UPDATE CHARTS");
     for (var [deviceId, sensors] of deviceData) {
         updateChart(deviceId);
@@ -344,14 +347,63 @@
   };
   setTimeout(updateCharts, 30000);
 
+  const addSeconds = function(existing, seconds) {
+    var dt = new Date(existing);
+    dt.setSeconds(dt.getSeconds() + seconds);
+    return dt;
+  };
+
+/*
+  const setupSlider = function() {
+    var range = document.getElementById('range');
+    if (range != null) {
+      console.log("Creating slider");
+      range.style.height = "40px";
+      range.style.width = "400px";
+      slider.create(range, {
+        range: {
+          min: addSeconds(maxDate, -maxWindow).getTime(),
+          max: maxDate.getTime()
+        },
+        step: 3600,
+        start: [addSeconds(maxDate, -window).getTime(), maxDate.getTime()]
+      });
+    } else {
+      setTimeout(setupSlider, 500);
+    }
+  };
+  */
+
+//  setTimeout(setupSlider, 500);
+
+  var dateSince = addSeconds(maxDate, -window).toString();
+  const rangeUpdated = function() {
+    updateCharts();
+    dateSince = addSeconds(maxDate, -window).toString();
+  };
+
 </script>
 
+<!--<link href='https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/9.0.0/nouislider.min.css' rel="stylesheet"> -->
+
 <style>
-  table, th, td {
+  table {
+    border: 0px solid black;
+    border-collapse: collapse;
+    width: 70%;
+  }
+  tr {
     border: 1px solid black;
   }
+  .desc {
+    width: 10%;
+  }
+  .chart {
+    width: 40%;
+    height: 300px;
+  }
   .slider {
-    width: 53%;
+    width: 70%;
   }
 </style>
 
@@ -362,14 +414,13 @@ Last updated: {maxDate}
 </p>
 
 <p>
-Time window: {window} seconds ago <br />
+Events since: {dateSince}
 </p>
 
+<!--
+<div id='range' class="slider"></div> -->
 <div>
-<input id="windowrange" type="range" class="slider" value="{window}" min="0" max="{maxWindow}" bind:value={window} />
-</div>
-<div>
-<button on:click={updateCharts}>Update</button>
+<input id="windowrange" type="range" class="slider" value="{window}" step="3600" min="0" max="{maxWindow}" on:change="{() => rangeUpdated()}" bind:value={window} />
 </div>
 
 <table>
@@ -379,12 +430,12 @@ Time window: {window} seconds ago <br />
 </tr>
 {#each Array.from(deviceInfo.keys()) as device}
 <tr>
-<td>
+<td class="desc">
 {deviceInfo.get(device).description}
 </td>
 {#each Array.from(deviceInfo.get(device).sensors) as sensor}
-<td>
-<canvas id="chart_{device}_{sensor}" width="800" height="200"></canvas>
+<td class="chart">
+<canvas id="chart_{device}_{sensor}" height="200px"></canvas>
 </td>
 {/each}
 </tr>
