@@ -47,8 +47,11 @@
             humidity
             heatindexCelcius
           }
+          soil {
+              numSamples
+              humidity
+          }
           motion
-          soil
         }
       }
     }`;
@@ -237,55 +240,57 @@
   const soilChart = function (options, cdata, sensorData) {
     cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
+    console.log(JSON.stringify(sensorData));
     var numSensors = 0;
     if (sensorData.length > 0) {
-       numSensors = sensorData[0].soil.length;
+       numSensors = sensorData[0].soil.humidity.length;
     }
 
-    cdata.datasets = [];
-    for (var i = 0; i < numSensors; i++) {
-      cdata.datasets.push({
-        fill: false,
-        borderColor: '#fe8b36',
-        backgroundColor: '#fe8b36',
-        lineTension: 0,
-        label: 'Plant ' + (i + 1),
-        steppedLine: false,
-        data: sensorData.map(function (v) {
-          if (v.soil[i] > 100) {
-            var value = 100 * ((1024.0 - v.soil[i]) / 1024.0);
-            return value;
-          } else {
-            return v.soil[i];
-          }
-        }),
-      });
-    }
+    console.log("Found %d sensors", numSensors);
+    if (numSensors > 0) {
 
-    if (window > 80000) {
-      options.elements = {
-        point: {
-          radius: 0
-        }
-      };
-    }
-    options.legend.display = true;
-    options.scales.yAxes = [
-      {
-        ticks: {
-          padding: 5,
-          display: true,
-          beginAtZero: false,
-          //min: 0,
-          //max: 100,
-        },
-        display: true,
-        scaleLabel: {
-          display: true,
-          labelString: "Soil moisture (%)"
-        }
+      cdata.datasets = [];
+      for (var i = 0; i < numSensors; i++) {
+        cdata.datasets.push({
+          fill: false,
+          borderColor: '#fe8b36',
+          backgroundColor: '#fe8b36',
+          lineTension: 0,
+          label: 'Plant ' + (i + 1),
+          steppedLine: false,
+          data: sensorData.filter(function (v) {
+            return v.soil.numSamples >= 1;
+          }).map(function (v) {
+            return v.soil.humidity[i];
+          }),
+        });
       }
-    ];
+  
+      if (window > 80000) {
+        options.elements = {
+          point: {
+            radius: 0
+          }
+        };
+      }
+      options.legend.display = true;
+      options.scales.yAxes = [
+        {
+          ticks: {
+            padding: 5,
+            display: true,
+            beginAtZero: false,
+            //min: 0,
+            //max: 100,
+          },
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: "Soil moisture (%)"
+          }
+        }
+      ];
+    }
   };
 
   // Update chart element in DOM for a given device
