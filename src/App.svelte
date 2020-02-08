@@ -63,7 +63,7 @@
   deviceObservable.subscribe({
     next: ({data}) => {
       const now = Math.floor(Date.now() / 1000);
-      const since = now - window; 
+      const since = now - maxWindow; 
       for (var idx in data.devices) {
         const device = data.devices[idx];
         if (deviceData.get(device.id) === undefined) {
@@ -240,7 +240,6 @@
   const soilChart = function (options, cdata, sensorData) {
     cdata.labels = sensorData.map(function (v) { return new Date(v.timestamp * 1000); });
 
-    console.log(JSON.stringify(sensorData));
     var numSensors = 0;
     if (sensorData.length > 0) {
        numSensors = sensorData[0].soil.humidity.length;
@@ -259,7 +258,7 @@
           label: 'Plant ' + (i + 1),
           steppedLine: false,
           data: sensorData.filter(function (v) {
-            return v.soil.numSamples >= 1;
+            return v.soil.numSamples >= 100;
           }).map(function (v) {
             return v.soil.humidity[i];
           }),
