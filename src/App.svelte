@@ -5,7 +5,7 @@
   import slider from "nouislider";
 
   const client = new ApolloClient({
-    uri: 'http://api.teig.cloud:8080/graphql'
+    uri: 'http://api.teig.cloud/graphql'
   });
 
   // Supported sensor types
